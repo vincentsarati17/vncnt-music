@@ -20,7 +20,8 @@ kotlin {
 
     // Android consumer (:app). Unified AGP/KMP library block (replaces
     // androidTarget + the standalone android {} block).
-    androidLibrary {
+    // NOTE: 'androidLibrary' renamed to 'android' per AGP 9 deprecation.
+    android {
         namespace = "com.vncnt.music.core"
         compileSdk = 36
         minSdk = 24

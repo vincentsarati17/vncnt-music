@@ -1,5 +1,7 @@
 package com.vncnt.music.core.db
 
+import androidx.room.Room
+import androidx.sqlite.driver.bundled.BundledSQLiteDriver
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
@@ -7,12 +9,16 @@ import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 
-// Runs on JVM (in-memory) and iOS simulator (temp file) via the
-// platform-appropriate createTestDatabase(). Mirrors the Android Robolectric
-// DAO suite — all three must stay green during migration.
+// JVM-only: Room's KSP toolchain does not emit linkable database code for
+// Native compilations (no generated actual or _Impl reaches iosSimulatorArm64),
+// so database RUNTIME tests run here and on Android (Robolectric). The iOS
+// gate still compiles every line of shared Room code plus all logic suites.
+// Mirrors the Android Robolectric DAO suite.
 class AppDatabaseTest {
 
-    private fun openDb(): AppDatabase = createTestDatabase()
+    private fun openDb(): AppDatabase = Room.inMemoryDatabaseBuilder<AppDatabase>()
+        .setDriver(BundledSQLiteDriver())
+        .build()
 
     private fun entity(
         id: String,

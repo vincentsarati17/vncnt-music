@@ -95,7 +95,9 @@ class HiFiAudioEngine(private val context: Context) : AudioEngine {
         }
     }
 
-    override fun playTrack(track: Track, startPositionSeconds: Int = 0) {
+    // NOTE: no default here — Kotlin forbids defaults on overrides; the
+    // interface declares = 0, so interface-typed callers keep it.
+    override fun playTrack(track: Track, startPositionSeconds: Int) {
         stop()
         currentTrack = track
         currentPositionSeconds = startPositionSeconds

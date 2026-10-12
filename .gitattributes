@@ -1,0 +1,5 @@
+# Keep text files normalized; force LF for scripts macOS CI executes
+# (a CRLF gradlew fails on macOS runners with "bad interpreter").
+* text=auto
+gradlew text eol=lf
+*.bat text eol=crlf

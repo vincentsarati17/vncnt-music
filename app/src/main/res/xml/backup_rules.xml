@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Production backup rules: back up user library + prefs, exclude caches. -->
+<full-backup-content>
+    <include domain="sharedpref" path="." />
+    <include domain="database" path="aura_music_db" />
+    <include domain="datastore" path="." />
+    <exclude domain="database" path="aura_music_db-journal" />
+    <exclude domain="file" path="coil_cache" />
+    <exclude domain="cache" path="." />
+    <exclude domain="external" path="." />
+</full-backup-content>

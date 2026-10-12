@@ -1,0 +1,49 @@
+# CI on macOS runners: the only Mac you need.
+# - Verifies shared :core on JVM + iOS simulator (catches expect/actual and
+#   Native-incompatible APIs that Windows cannot compile at all).
+# - Verifies :app unit tests + debug APK (Android SDK installed below).
+# No Apple Developer account needed: simulator builds require no signing.
+# NOTE: repo has no gradlew yet — run `gradle wrapper --gradle-version 9.3.1`
+# once locally and commit the result before pushing (see README checklist).
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+
+jobs:
+  verify:
+    runs-on: macos-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android platform + build-tools
+        run: |
+          sdkmanager "platforms;android-36" "build-tools;36.0.0" "platform-tools"
+          yes | sdkmanager --licenses > /dev/null || true
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Shared tests (JVM)
+        run: ./gradlew :core:jvmTest --console=plain
+
+      - name: Shared tests (iOS simulator)
+        run: ./gradlew :core:iosSimulatorArm64Test --console=plain
+
+      - name: App unit tests
+        run: ./gradlew :app:testDebugUnitTest --console=plain
+
+      - name: Debug APK
+        run: ./gradlew :app:assembleDebug --console=plain

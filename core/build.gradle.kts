@@ -15,6 +15,12 @@ plugins {
 }
 
 kotlin {
+    // Opt into Beta expect/actual classes (KT-61573): silences the per-file
+    // warning on the shared AppDatabaseConstructor pattern, all targets.
+    compilerOptions {
+        freeCompilerArgs.add("-Xexpect-actual-classes")
+    }
+
     // Local JVM: runs commonTest via `jvmTest`, no emulator needed.
     jvm()
 

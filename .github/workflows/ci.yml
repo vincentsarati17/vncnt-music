@@ -104,4 +104,4 @@ jobs:
 
       - name: Build iOS shell (simulator)
         run: |
-          cd iosApp && xcodebuild -scheme VncntMusic -configuration Debug -destination 'platform=iOS Simulator,name=iPhone 16' CODE_SIGNING_ALLOWED=NO build
+          cd iosApp && xcodebuild -scheme VncntMusic -configuration Debug -destination 'platform=iOS Simulator,name=iPhone 17' CODE_SIGNING_ALLOWED=NO build

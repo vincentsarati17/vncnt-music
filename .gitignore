@@ -17,3 +17,7 @@ build/
 local.properties
 .env
 debug.keystore
+# XcodeGen output (regenerated via `xcodegen generate`, never committed).
+iosApp/*.xcodeproj/
+iosApp/build/
+iosApp/DerivedData/

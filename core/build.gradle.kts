@@ -36,10 +36,15 @@ kotlin {
         }
     }
 
-    // iOS targets (compile-only until Xcode framework linking is wired).
+    // iOS targets. The simulator framework ships to the Xcode shell under a
+    // stable name (default would track the module name).
     iosX64()
     iosArm64()
-    iosSimulatorArm64()
+    iosSimulatorArm64 {
+        binaries.framework {
+            baseName = "VncntMusicCore"
+        }
+    }
 
     sourceSets {
         commonMain.dependencies {

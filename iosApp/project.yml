@@ -13,11 +13,11 @@ targets:
       - Sources
     info:
       path: Info.plist
-        properties:
-          # Continue playback with the screen locked / app backgrounded.
-          UIBackgroundModes: [audio]
-          # Required before MPMediaLibrary.requestAuthorization may prompt.
-          NSAppleMusicUsageDescription: "Vncnt Music reads your on-device library to build playlists."
+      properties:
+        # Continue playback with the screen locked / app backgrounded.
+        UIBackgroundModes: [audio]
+        # Required before MPMediaLibrary.requestAuthorization may prompt.
+        NSAppleMusicUsageDescription: "Vncnt Music reads your on-device library to build playlists."
     frameworks:
       - path: ../core/build/bin/iosSimulatorArm64/debugFramework/VncntMusicCore.framework
         embed: true

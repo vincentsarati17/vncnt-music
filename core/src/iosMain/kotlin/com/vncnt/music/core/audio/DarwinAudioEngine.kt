@@ -190,7 +190,10 @@ class DarwinAudioEngine : AudioEngine {
     private fun resolveUrl(track: Track): NSURL? {
         val raw = track.customAudioUri ?: track.filePath ?: return null
         if (raw.startsWith("content:")) return null
-        return if (raw.startsWith("file://") || raw.startsWith("http://") || raw.startsWith("https://")) {
+        // ipod-library:// is the device-library asset URL (MPMediaItem).
+        return if (raw.startsWith("file://") || raw.startsWith("http://") ||
+            raw.startsWith("https://") || raw.startsWith("ipod-library://")
+        ) {
             NSURL.URLWithString(raw)
         } else {
             NSURL.fileURLWithPath(raw)

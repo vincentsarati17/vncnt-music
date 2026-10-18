@@ -18,9 +18,11 @@ final class PlayerState: ObservableObject {
     @Published var errorMessage: String? = nil
     @Published var isReady: Bool = false
     @Published var speed: Float = 1.0
+    @Published var usingDemoLibrary: Bool = true
 
     let engine: DarwinAudioEngine = DarwinAudioEngine()
     let nowPlaying = NowPlayingPresenter()
+    let deviceLibrary = DeviceLibraryScanner()
     private var events: EngineEvents? = nil
     private var didBindRemoteCommands = false
 
@@ -53,11 +55,44 @@ final class PlayerState: ObservableObject {
             currentTrack = demo
             durationMs = Int64(demo.durationSeconds) * 1000
             isReady = true
+            deviceLibrary.onFinished = { [weak self] in
+                DispatchQueue.main.async { self?.applyDeviceLibrary(showHint: true) }
+            }
+            applyDeviceLibrary()
             bindRemoteCommands()
             publishNowPlaying()
         } catch {
             errorMessage = "Could not prepare demo audio."
         }
+    }
+
+    /// Prompts for media-library access, then rescans via `onFinished`.
+    func requestDeviceLibrary() {
+        errorMessage = nil
+        deviceLibrary.requestAuthorization()
+    }
+
+    /// Replaces the demo tracks when the device library has playable items;
+    /// otherwise keeps the demo (and, after a prompt, explains why).
+    private func applyDeviceLibrary(showHint: Bool = false) {
+        let tracks = deviceLibrary.scan()
+        guard !tracks.isEmpty else {
+            if showHint {
+                errorMessage = "No playable music found, or library access was denied."
+            }
+            return
+        }
+        errorMessage = nil
+        usingDemoLibrary = false
+        engine.pause()
+        isPlaying = false
+        positionMs = 0
+        playlists = PlaylistBuilder.shared.buildPlaylists(tracks: tracks)
+        if let first = tracks.first {
+            currentTrack = first
+            durationMs = Int64(first.durationSeconds) * 1000
+        }
+        publishNowPlaying()
     }
 
     func toggle() {

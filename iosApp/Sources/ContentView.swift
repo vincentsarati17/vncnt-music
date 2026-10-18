@@ -24,6 +24,13 @@ struct ContentView: View {
                     .listStyle(.plain)
                     .frame(maxHeight: 240)
 
+                    if player.usingDemoLibrary {
+                        Button("Use my music library") { player.requestDeviceLibrary() }
+                            .buttonStyle(.bordered)
+                            .font(.footnote)
+                            .frame(maxWidth: .infinity)
+                    }
+
                     Divider()
 
                     VStack(spacing: 12) {

@@ -28,7 +28,7 @@ final class PlayerState: ObservableObject {
 
     func prepare() {
         let events = EngineEvents(engine: engine)
-        events.onTickMs = { [weak self] ms, _ in self?.positionMs = ms }
+        events.onTickMs = { [weak self] ms, _ in self?.positionMs = ms.int64Value }
         events.onAmplitude = { [weak self] amp in self?.level = amp.floatValue }
         events.onCompleted = { [weak self] in
             self?.isPlaying = false

@@ -29,7 +29,7 @@ final class PlayerState: ObservableObject {
     func prepare() {
         let events = EngineEvents(engine: engine)
         events.onTickMs = { [weak self] ms, _ in self?.positionMs = ms }
-        events.onAmplitude = { [weak self] amp in self?.level = amp }
+        events.onAmplitude = { [weak self] amp in self?.level = amp.floatValue }
         events.onCompleted = { [weak self] in
             self?.isPlaying = false
             self?.positionMs = 0
@@ -42,10 +42,12 @@ final class PlayerState: ObservableObject {
 
         do {
             let url = try ToneFile.url()
-            let demo = DemoTracks.tone(filePath: url.path)
-            playlists = PlaylistBuilder.shared.buildPlaylists(tracks: [demo])
+            let demo = DemoTracks.shared.tone(filePath: url.path)
+            playlists = PlaylistBuilder.shared.buildPlaylists(
+                tracks: DemoTracks.shared.library(filePath: url.path)
+            )
             currentTrack = demo
-            durationMs = Int64(Int32(DemoTracks.DEMO_DURATION_SECONDS)) * 1000
+            durationMs = Int64(demo.durationSeconds) * 1000
             isReady = true
         } catch {
             errorMessage = "Could not prepare demo audio."

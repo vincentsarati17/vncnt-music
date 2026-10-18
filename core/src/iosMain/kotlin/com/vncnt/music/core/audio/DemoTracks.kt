@@ -23,4 +23,8 @@ object DemoTracks {
         isHiRes = true,
         audioQualityBadge = "WAV • 16-bit PCM"
     )
+
+    /** The demo library — built on the Kotlin side so Swift never converts
+     *  a Swift array into a Kotlin List across the FFI. */
+    fun library(filePath: String): List<Track> = listOf(tone(filePath))
 }

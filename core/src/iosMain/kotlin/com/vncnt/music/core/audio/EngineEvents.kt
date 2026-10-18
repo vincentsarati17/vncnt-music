@@ -17,20 +17,18 @@ class EngineEvents(engine: AudioEngine) : AudioEngineListener {
     var onAmplitude: ((Float) -> Unit)? = null
     var onCompleted: (() -> Unit)? = null
     var onFailure: ((String) -> Unit)? = null
+    var onTickMs: ((Long, Float) -> Unit)? = null
 
     override fun onPosition(positionSeconds: Int, progress: Float) {
         onTick?.invoke(positionSeconds, progress)
     }
 
     override fun onPositionMs(positionMs: Long, positionSeconds: Int, progress: Float) {
-        // Route through the seconds onTick to keep a single Swift-visible
-        // shape; ms resolution (for display + seek) derived here.
+        // Swift binds onTickMs for ms-resolution display; onTick stays for
+        // seconds-resolution consumers.
         onTick?.invoke(positionSeconds, progress)
         onTickMs?.invoke(positionMs, progress)
     }
-
-    private var onTickMs: ((Long, Float) -> Unit)? = null
-    fun setTickMs(cb: ((Long, Float) -> Unit)?) { onTickMs = cb }
 
     override fun onAmplitudes(amplitudes: List<Float>) {
         amplitudes.forEach { onAmplitude?.invoke(it) }

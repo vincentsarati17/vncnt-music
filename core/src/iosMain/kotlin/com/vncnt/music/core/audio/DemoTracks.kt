@@ -16,6 +16,7 @@ object DemoTracks {
         artist = "Vncnt Engine",
         album = "Shell Session",
         durationSeconds = DEMO_DURATION_SECONDS,
+        genre = "Demo",
         imageResName = "",
         audioToneType = "DEFAULT",
         filePath = filePath,

@@ -2,17 +2,29 @@ package com.vncnt.music.core.audio
 
 import com.vncnt.music.core.model.SoundPreset
 import com.vncnt.music.core.model.Track
+import kotlinx.cinterop.CValue
 import kotlinx.cinterop.ExperimentalForeignApi
 import platform.AVFoundation.AVPlayer
 import platform.AVFoundation.AVPlayerItem
 import platform.AVFoundation.AVPlayerItemDidPlayToEndTimeNotification
+import platform.AVFoundation.addPeriodicTimeObserverForInterval
+import platform.AVFoundation.currentItem
+import platform.AVFoundation.duration
+import platform.AVFoundation.pause
+import platform.AVFoundation.play
+import platform.AVFoundation.rate
+import platform.AVFoundation.removeTimeObserver
+import platform.AVFoundation.replaceCurrentItemWithPlayerItem
+import platform.AVFoundation.seekToTime
+import platform.AVFoundation.volume
+import platform.CoreMedia.CMTime
 import platform.CoreMedia.CMTimeGetSeconds
 import platform.CoreMedia.CMTimeMakeWithSeconds
 import platform.Foundation.NSNotificationCenter
-import platform.darwin.dispatch_get_main_queue
-import platform.Foundation.NSObjectProtocol
 import platform.Foundation.NSOperationQueue
 import platform.Foundation.NSURL
+import platform.darwin.NSObjectProtocol
+import platform.darwin.dispatch_get_main_queue
 import kotlin.math.sin
 
 /**
@@ -166,8 +178,8 @@ class DarwinAudioEngine : AudioEngine {
         timeObserver?.let { audioPlayer.removeTimeObserver(it) }
         timeObserver = audioPlayer.addPeriodicTimeObserverForInterval(
             CMTimeMakeWithSeconds(0.3, 600),
-            queue = dispatch_get_main_queue()
-        ) { time ->
+            dispatch_get_main_queue()
+        ) { time: CValue<CMTime> ->
             val seconds = CMTimeGetSeconds(time)
             if (!seconds.isNaN()) {
                 currentPositionSeconds = seconds.toInt()

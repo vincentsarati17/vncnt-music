@@ -1,5 +1,7 @@
 package com.vncnt.music.core.audio
 
+import com.vncnt.music.core.model.Track
+
 /**
  * Builds the demo Track on the Kotlin side so Swift never constructs shared
  * models across the FFI (a construction path this shell has not proven).

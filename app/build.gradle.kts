@@ -9,11 +9,9 @@ plugins {
 }
 
 android {
-  // Production identity: Play Store uses applicationId (com.vncnt.music).
-  // namespace stays com.example to match the Kotlin source packages and the
-  // generated R class. TODO: migrate Kotlin packages com.example ->
-  // com.vncnt.music, then set namespace = applicationId.
-  namespace = "com.example"
+  // Production identity: Play Store applicationId and namespace are both
+  // com.vncnt.music (Kotlin packages migrated from the template namespace).
+  namespace = "com.vncnt.music"
   compileSdk { version = release(36) { minorApiLevel = 1 } }
 
   defaultConfig {

@@ -13,7 +13,7 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <application
-        android:name="com.example.VncntMusicApp"
+        android:name="com.vncnt.music.VncntMusicApp"
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
@@ -24,7 +24,7 @@
         android:usesCleartextTraffic="false"
         android:theme="@style/Theme.MyApplication">
         <activity
-            android:name="com.example.MainActivity"
+            android:name="com.vncnt.music.MainActivity"
             android:exported="true"
             android:launchMode="singleTask"
             android:configChanges="orientation|screenSize|screenLayout|keyboardHidden"
@@ -38,7 +38,7 @@
         </activity>
 
         <service
-            android:name="com.example.playback.MusicPlaybackService"
+            android:name="com.vncnt.music.playback.MusicPlaybackService"
             android:exported="false"
             android:foregroundServiceType="mediaPlayback" />
     </application>

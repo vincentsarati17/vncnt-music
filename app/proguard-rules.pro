@@ -18,13 +18,13 @@
 
 # Room — keep entities/DAOs, DB impl is generated.
 -keep class androidx.room.RoomDatabase { *; }
--keep class com.example.data.db.** { *; }
+-keep class com.vncnt.music.data.db.** { *; }
 -dontwarn androidx.room.**
 -keepattributes *Annotation*
 
 # Retrofit / OkHttp / Moshi — reflective JSON adapters.
 -keep class com.squareup.moshi.** { *; }
--keep class com.example.data.api.** { *; }
+-keep class com.vncnt.music.data.api.** { *; }
 -keepclasseswithmembers class * {
     @com.squareup.moshi.Json <fields>;
 }

@@ -19,6 +19,7 @@ final class PlayerState: ObservableObject {
     @Published var speed: Float = 1.0
 
     let engine: DarwinAudioEngine = DarwinAudioEngine()
+    let nowPlaying = NowPlayingPresenter()
     private var events: EngineEvents? = nil
 
     var progress: Double {
@@ -33,6 +34,7 @@ final class PlayerState: ObservableObject {
         events.onCompleted = { [weak self] in
             self?.isPlaying = false
             self?.positionMs = 0
+            self?.publishNowPlaying()
         }
         events.onFailure = { [weak self] message in
             self?.errorMessage = message
@@ -49,6 +51,9 @@ final class PlayerState: ObservableObject {
             currentTrack = demo
             durationMs = Int64(demo.durationSeconds) * 1000
             isReady = true
+            nowPlaying.onToggle = { [weak self] in self?.toggle() }
+            nowPlaying.bindRemoteCommands()
+            publishNowPlaying()
         } catch {
             errorMessage = "Could not prepare demo audio."
         }
@@ -64,10 +69,26 @@ final class PlayerState: ObservableObject {
             engine.playTrack(track: track, startPositionSeconds: Int32(positionMs / 1000))
             isPlaying = true
         }
+        publishNowPlaying()
     }
 
     func seek(to progress: Double) {
         engine.seekToMs(positionMs: Int64(progress * Double(durationMs)))
+        publishNowPlaying()
+    }
+
+    private func publishNowPlaying() {
+        guard let track = currentTrack else {
+            nowPlaying.clear()
+            return
+        }
+        nowPlaying.update(
+            title: track.title,
+            artist: track.artist,
+            durationMs: durationMs,
+            positionMs: positionMs,
+            isPlaying: isPlaying
+        )
     }
 
     func setSpeed(_ value: Float) {

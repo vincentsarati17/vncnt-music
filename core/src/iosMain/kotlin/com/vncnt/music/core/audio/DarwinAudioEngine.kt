@@ -17,6 +17,10 @@ import platform.AVFoundation.removeTimeObserver
 import platform.AVFoundation.replaceCurrentItemWithPlayerItem
 import platform.AVFoundation.seekToTime
 import platform.AVFoundation.volume
+import platform.AVFAudio.AVAudioSession
+import platform.AVFAudio.AVAudioSessionCategoryPlayback
+import platform.AVFAudio.setActive
+import platform.AVFAudio.setCategory
 import platform.CoreMedia.CMTime
 import platform.CoreMedia.CMTimeGetSeconds
 import platform.CoreMedia.CMTimeMakeWithSeconds
@@ -52,11 +56,13 @@ class DarwinAudioEngine : AudioEngine {
     private var timeObserver: Any? = null
     private var endObserver: NSObjectProtocol? = null
     private var tick: Int = 0
+    private var audioSessionConfigured: Boolean = false
 
     // NOTE: no default value here — Kotlin forbids defaults on overrides;
     // the interface default (= 0) still applies to interface-typed callers.
     override fun playTrack(track: Track, startPositionSeconds: Int) {
         stopInternal()
+        configureAudioSession()
         currentTrack = track
         currentPositionSeconds = startPositionSeconds.coerceAtLeast(0)
         val url = resolveUrl(track)
@@ -162,6 +168,24 @@ class DarwinAudioEngine : AudioEngine {
             player = audioPlayer
         }
         return audioPlayer
+    }
+
+    /**
+     * Playback category + activation: without it the ringer switch silences
+     * playback and background audio is denied, even with the entitlement.
+     * Best-effort — shape matches deployed real-world usage exactly
+     * (attempt + swallow; no NSError plumbing in KN bindings).
+     */
+    private fun configureAudioSession() {
+        if (audioSessionConfigured) return
+        audioSessionConfigured = true
+        try {
+            val session = AVAudioSession.sharedInstance()
+            session.setCategory(AVAudioSessionCategoryPlayback, null)
+            session.setActive(true, null)
+        } catch (t: Throwable) {
+            // Playback still functions without a configured session.
+        }
     }
 
     private fun resolveUrl(track: Track): NSURL? {

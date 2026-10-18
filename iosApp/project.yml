@@ -13,6 +13,9 @@ targets:
       - Sources
     info:
       path: Info.plist
+      properties:
+        # Continue playback with the screen locked / app backgrounded.
+        UIBackgroundModes: [audio]
     frameworks:
       - path: ../core/build/bin/iosSimulatorArm64/debugFramework/VncntMusicCore.framework
         embed: true

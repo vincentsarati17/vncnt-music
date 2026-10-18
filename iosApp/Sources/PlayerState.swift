@@ -1,4 +1,5 @@
 import Foundation
+import MediaPlayer
 import VncntMusicCore
 
 /// Observable playback state, driven by the shared engine on the main actor.
@@ -21,6 +22,7 @@ final class PlayerState: ObservableObject {
     let engine: DarwinAudioEngine = DarwinAudioEngine()
     let nowPlaying = NowPlayingPresenter()
     private var events: EngineEvents? = nil
+    private var didBindRemoteCommands = false
 
     var progress: Double {
         guard durationMs > 0 else { return 0 }
@@ -51,8 +53,7 @@ final class PlayerState: ObservableObject {
             currentTrack = demo
             durationMs = Int64(demo.durationSeconds) * 1000
             isReady = true
-            nowPlaying.onToggle = { [weak self] in self?.toggle() }
-            nowPlaying.bindRemoteCommands()
+            bindRemoteCommands()
             publishNowPlaying()
         } catch {
             errorMessage = "Could not prepare demo audio."
@@ -75,6 +76,23 @@ final class PlayerState: ObservableObject {
     func seek(to progress: Double) {
         engine.seekToMs(positionMs: Int64(progress * Double(durationMs)))
         publishNowPlaying()
+    }
+
+    /// Lock-screen / Control Center transport. The Swift
+    /// `addTarget(handler:)` API is documented and stable; each handler
+    /// returns `.success` so the system accepts the command. Guarded because
+    /// `prepare()` can re-run when the root view reappears and every
+    /// registration would otherwise stack a duplicate handler.
+    private func bindRemoteCommands() {
+        guard !didBindRemoteCommands else { return }
+        didBindRemoteCommands = true
+        let handler: (MPRemoteCommandEvent) -> MPRemoteCommandHandlerStatus = { [weak self] _ in
+            self?.toggle()
+            return .success
+        }
+        _ = MPRemoteCommandCenter.shared().playCommand.addTarget(handler: handler)
+        _ = MPRemoteCommandCenter.shared().pauseCommand.addTarget(handler: handler)
+        _ = MPRemoteCommandCenter.shared().togglePlayPauseCommand.addTarget(handler: handler)
     }
 
     private func publishNowPlaying() {

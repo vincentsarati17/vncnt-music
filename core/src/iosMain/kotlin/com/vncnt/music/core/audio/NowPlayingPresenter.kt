@@ -8,35 +8,16 @@ import platform.MediaPlayer.MPMediaItemPropertyTitle
 import platform.MediaPlayer.MPNowPlayingInfoCenter
 import platform.MediaPlayer.MPNowPlayingInfoPropertyElapsedPlaybackTime
 import platform.MediaPlayer.MPNowPlayingInfoPropertyPlaybackRate
-import platform.MediaPlayer.MPRemoteCommandCenter
-import platform.MediaPlayer.MPRemoteCommandEvent
-import platform.MediaPlayer.MPRemoteCommandHandlerStatus
-import platform.MediaPlayer.MPRemoteCommandTarget
 import platform.MediaPlayer.nowPlayingInfo
-import kotlinx.cinterop.CValue
 
 /**
- * Lock-screen / Control Center integration. Swift passes primitives and one
- * zero-arg toggle closure — the proven FFI vocabulary; all MediaPlayer
- * work stays here. Remote commands arrive via the MPRemoteCommandTarget
- * protocol (all three transport commands funnel through onToggle).
+ * Lock-screen / Control Center metadata (title, artist, position, rate).
+ * Remote transport commands (play/pause) are bound in PlayerState.swift:
+ * the documented Swift addTarget(handler:) API is authoritative there, while
+ * K/N's MediaPlayer package does not expose MPRemoteCommandTarget at all.
  */
 @OptIn(ExperimentalForeignApi::class)
-class NowPlayingPresenter : MPRemoteCommandTarget {
-
-    var onToggle: (() -> Unit)? = null
-
-    fun bindRemoteCommands() {
-        val center = MPRemoteCommandCenter.sharedCommandCenter()
-        center.togglePlayPauseCommand.addTarget(this)
-        center.playCommand.addTarget(this)
-        center.pauseCommand.addTarget(this)
-    }
-
-    override fun remoteCommandReceived(event: MPRemoteCommandEvent): MPRemoteCommandHandlerStatus {
-        onToggle?.invoke()
-        return MPRemoteCommandHandlerStatus.Success
-    }
+class NowPlayingPresenter {
 
     fun update(
         title: String,

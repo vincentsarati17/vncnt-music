@@ -9,18 +9,8 @@ import platform.AVFAudio.AVAudioPlayerNode
 import platform.AVFAudio.AVAudioSession
 import platform.AVFAudio.AVAudioSessionCategoryPlayback
 import platform.AVFAudio.AVAudioUnitEQ
-import platform.AVFAudio.attachNode
-import platform.AVFAudio.connect
-import platform.AVFAudio.enableRate
-import platform.AVFAudio.lastRenderTime
-import platform.AVFAudio.length
-import platform.AVFAudio.pause
-import platform.AVFAudio.play
-import platform.AVFAudio.playerTimeForNodeTime
 import platform.AVFAudio.rate
 import platform.AVFAudio.sampleRate
-import platform.AVFAudio.sampleTime
-import platform.AVFAudio.scheduleSegment
 import platform.AVFAudio.setActive
 import platform.AVFAudio.startAndReturnError
 import platform.AVFAudio.stop
@@ -28,9 +18,6 @@ import platform.AVFoundation.AVAssetExportPresetAppleM4A
 import platform.AVFoundation.AVAssetExportSession
 import platform.AVFoundation.AVFileTypeAppleM4A
 import platform.AVFoundation.AVURLAsset
-import platform.AVFoundation.exportAsynchronouslyWithCompletionHandler
-import platform.AVFoundation.outputFileType
-import platform.AVFoundation.outputURL
 import platform.Foundation.NSFileManager
 import platform.Foundation.NSTemporaryDirectory
 import platform.Foundation.NSTimer
@@ -186,12 +173,12 @@ class DarwinAudioEngine : AudioEngine {
         if (audioEngine == null || audioPlayer == null) {
             audioEngine = AVAudioEngine()
             audioPlayer = AVAudioPlayerNode()
-            val eqNode = AVAudioUnitEQ(4)
+            val eqNode = AVAudioUnitEQ(4u)
             audioEngine.attachNode(audioPlayer)
             audioEngine.attachNode(eqNode)
             audioEngine.connect(audioPlayer, eqNode, null)
             audioEngine.connect(eqNode, audioEngine.mainMixerNode, null)
-            audioPlayer.enableRate = true
+            // TODO(enableRate): KN member name pending probe result.
             audioEngine.mainMixerNode.outputVolume = if (ducked) 0.25f else 1.0f
             engine = audioEngine
             player = audioPlayer

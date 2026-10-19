@@ -2,8 +2,13 @@ package com.vncnt.music.core.audio
 
 import com.vncnt.music.core.model.SoundPreset
 import com.vncnt.music.core.model.Track
+import kotlinx.cinterop.ExperimentalForeignApi
+import platform.AVFAudio.AVAudioPlayerNode
+import platform.AVFAudio.AVAudioUnitEQ
 import kotlin.test.Test
 import kotlin.test.assertTrue
+
+@OptIn(ExperimentalForeignApi::class)
 
 /**
  * Headless engine checks: no audio hardware, runloop, or files needed.
@@ -57,5 +62,23 @@ class DarwinEngineSmokeTest {
         engine.setHiRes(true)
         engine.stop()
         engine.release()
+    }
+
+    /**
+     * Compile probes for Kotlin/Native AVFAudio member names. Any miss
+     * surfaces as a CI annotation with the exact compiler error, which is
+     * how the engine's binding spellings get settled without a local Mac.
+     */
+    @Test
+    fun avAudioBindingProbes() {
+        val node = AVAudioPlayerNode()
+        node.enableRate = true
+        node.isEnableRate = true
+        val eq = AVAudioUnitEQ(4u)
+        val band = eq.bands[0]
+        band.frequency = 100f
+        band.gain = 2f
+        band.bandwidth = 1.0f
+        assertTrue(band.frequency == 100f)
     }
 }

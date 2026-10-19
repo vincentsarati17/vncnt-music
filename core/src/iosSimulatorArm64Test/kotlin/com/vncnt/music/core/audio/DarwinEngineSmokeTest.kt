@@ -6,6 +6,8 @@ import kotlinx.cinterop.ExperimentalForeignApi
 import platform.AVFAudio.AVAudioPlayerNode
 import platform.AVFAudio.AVAudioUnitEQ
 import platform.AVFAudio.AVAudioUnitEQFilterParameters
+import platform.Foundation.setValue
+import platform.Foundation.valueForKey
 import kotlin.test.Test
 import kotlin.test.assertTrue
 

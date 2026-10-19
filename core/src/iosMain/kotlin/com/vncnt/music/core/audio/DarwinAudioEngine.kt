@@ -9,6 +9,7 @@ import platform.AVFAudio.AVAudioPlayerNode
 import platform.AVFAudio.AVAudioSession
 import platform.AVFAudio.AVAudioSessionCategoryPlayback
 import platform.AVFAudio.AVAudioUnitEQ
+import platform.AVFAudio.AVAudioUnitEQFilterParameters
 import platform.AVFAudio.rate
 import platform.AVFAudio.sampleRate
 import platform.AVFAudio.setActive
@@ -22,7 +23,6 @@ import platform.Foundation.NSFileManager
 import platform.Foundation.NSTemporaryDirectory
 import platform.Foundation.NSTimer
 import platform.Foundation.NSURL
-import platform.ObjectBase.NSObject
 import platform.darwin.dispatch_async
 import platform.darwin.dispatch_get_main_queue
 import kotlin.math.log10
@@ -191,7 +191,7 @@ class DarwinAudioEngine : AudioEngine {
             audioEngine.connect(eqNode, audioEngine.mainMixerNode, null)
             // enableRate has no Kotlin binding name in this KN version; KVC
             // sets the ObjC property directly (it is KVC-compliant).
-            audioPlayer.setValue(true, forKey = "enableRate")
+            audioPlayer.setValue(true, "enableRate")
             audioEngine.mainMixerNode.outputVolume = if (ducked) 0.25f else 1.0f
             engine = audioEngine
             player = audioPlayer
@@ -221,10 +221,10 @@ class DarwinAudioEngine : AudioEngine {
     }
 
     private fun setBand(bandsList: List<*>, index: Int, frequency: Float, gainDb: Float, bandwidth: Float) {
-        val band = bandsList.getOrNull(index) as? NSObject ?: return
-        band.setValue(frequency, forKey = "frequency")
-        band.setValue(gainDb, forKey = "gain")
-        band.setValue(bandwidth, forKey = "bandwidth")
+        val band = bandsList.getOrNull(index) as? AVAudioUnitEQFilterParameters ?: return
+        band.setValue(frequency, "frequency")
+        band.setValue(gainDb, "gain")
+        band.setValue(bandwidth, "bandwidth")
     }
 
     private fun toDb(multiplier: Float): Float = (20.0 * log10(multiplier.toDouble())).toFloat()

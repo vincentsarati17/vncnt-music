@@ -5,7 +5,7 @@ import com.vncnt.music.core.model.Track
 import kotlinx.cinterop.ExperimentalForeignApi
 import platform.AVFAudio.AVAudioPlayerNode
 import platform.AVFAudio.AVAudioUnitEQ
-import platform.ObjectBase.NSObject
+import platform.AVFAudio.AVAudioUnitEQFilterParameters
 import kotlin.test.Test
 import kotlin.test.assertTrue
 
@@ -73,11 +73,11 @@ class DarwinEngineSmokeTest {
     @Test
     fun avAudioDspKvcProbes() {
         val node = AVAudioPlayerNode()
-        node.setValue(true, forKey = "enableRate")
+        node.setValue(true, "enableRate")
         val eq = AVAudioUnitEQ(4u)
-        val band = eq.bands[0] as NSObject
-        band.setValue(100.0f, forKey = "frequency")
-        band.setValue(2.0f, forKey = "gain")
+        val band = eq.bands[0] as AVAudioUnitEQFilterParameters
+        band.setValue(100.0f, "frequency")
+        band.setValue(2.0f, "gain")
         assertTrue(band.valueForKey("frequency").toString().contains("100"))
     }
 }

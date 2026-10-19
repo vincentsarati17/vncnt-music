@@ -42,7 +42,14 @@ jobs:
         run: ./gradlew :core:jvmTest --console=plain
 
       - name: Shared tests (iOS simulator)
-        run: ./gradlew :core:iosSimulatorArm64Test --console=plain
+        run: |
+          set -o pipefail
+          ./gradlew :core:iosSimulatorArm64Test --console=plain 2>&1 | tee /tmp/step-ios-test.log || {
+            errs=$(grep -E '^e: |error: |What went wrong|FAILED' /tmp/step-ios-test.log | head -60 | tr '\n' '~')
+            [ -z "$errs" ] && errs=$(tail -40 /tmp/step-ios-test.log | tr '\n' '~')
+            echo "::error title=Shared tests (iOS simulator) failed::$errs"
+            exit 1
+          }
 
       - name: App unit tests
         run: ./gradlew :app:testDebugUnitTest --console=plain
@@ -95,7 +102,14 @@ jobs:
           yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null || true
 
       - name: Build shared framework (simulator)
-        run: ./gradlew :core:linkDebugFrameworkIosSimulatorArm64 --console=plain
+        run: |
+          set -o pipefail
+          ./gradlew :core:linkDebugFrameworkIosSimulatorArm64 --console=plain 2>&1 | tee /tmp/step-framework.log || {
+            errs=$(grep -E '^e: |error: |What went wrong|FAILED' /tmp/step-framework.log | head -60 | tr '\n' '~')
+            [ -z "$errs" ] && errs=$(tail -40 /tmp/step-framework.log | tr '\n' '~')
+            echo "::error title=Build shared framework failed::$errs"
+            exit 1
+          }
 
       - name: Generate Xcode project
         run: |
@@ -104,4 +118,10 @@ jobs:
 
       - name: Build iOS shell (simulator)
         run: |
-          cd iosApp && xcodebuild -scheme VncntMusic -configuration Debug -destination 'platform=iOS Simulator,name=iPhone 17' CODE_SIGNING_ALLOWED=NO build
+          set -o pipefail
+          cd iosApp && xcodebuild -scheme VncntMusic -configuration Debug -destination 'platform=iOS Simulator,name=iPhone 17' CODE_SIGNING_ALLOWED=NO build 2>&1 | tee /tmp/step-xcode.log || {
+            errs=$(grep -E 'error:|warning: .*deprecat' /tmp/step-xcode.log | head -60 | tr '\n' '~')
+            [ -z "$errs" ] && errs=$(tail -40 /tmp/step-xcode.log | tr '\n' '~')
+            echo "::error title=iOS shell build failed::$errs"
+            exit 1
+          }

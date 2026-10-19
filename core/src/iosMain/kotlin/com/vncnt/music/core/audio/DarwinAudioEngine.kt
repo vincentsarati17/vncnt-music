@@ -19,10 +19,10 @@ import platform.AVFoundation.AVAssetExportSession
 import platform.AVFoundation.AVFileTypeAppleM4A
 import platform.AVFoundation.AVURLAsset
 import platform.Foundation.NSFileManager
-import platform.Foundation.NSObject
 import platform.Foundation.NSTemporaryDirectory
 import platform.Foundation.NSTimer
 import platform.Foundation.NSURL
+import platform.ObjectBase.NSObject
 import platform.darwin.dispatch_async
 import platform.darwin.dispatch_get_main_queue
 import kotlin.math.log10

@@ -5,7 +5,7 @@ import com.vncnt.music.core.model.Track
 import kotlinx.cinterop.ExperimentalForeignApi
 import platform.AVFAudio.AVAudioPlayerNode
 import platform.AVFAudio.AVAudioUnitEQ
-import platform.Foundation.NSObject
+import platform.ObjectBase.NSObject
 import kotlin.test.Test
 import kotlin.test.assertTrue
 

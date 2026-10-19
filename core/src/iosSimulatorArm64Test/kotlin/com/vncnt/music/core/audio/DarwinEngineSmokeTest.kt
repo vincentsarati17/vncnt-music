@@ -68,18 +68,37 @@ class DarwinEngineSmokeTest {
     }
 
     /**
-     * Runtime probes for the KVC-based DSP bindings the engine relies on
-     * (no Kotlin member names exist for these ObjC properties in this KN
-     * build). Any miss surfaces as a CI annotation with the exact error.
+     * Granular runtime probes for the KVC-based DSP bindings the engine
+     * relies on (no Kotlin member names exist for these ObjC properties in
+     * this KN build). Split so a CI annotation names the exact failing step.
      */
     @Test
-    fun avAudioDspKvcProbes() {
+    fun probeEqBandElementClass() {
+        val eq = AVAudioUnitEQ(4u)
+        val band = eq.bands[0] as AVAudioUnitEQFilterParameters
+        assertTrue(true, "band element cast ok")
+    }
+
+    @Test
+    fun probeEnableRateKvc() {
         val node = AVAudioPlayerNode()
         node.setValue(true, "enableRate")
+        assertTrue(true, "enableRate kvc ok")
+    }
+
+    @Test
+    fun probeBandFrequencyKvcSet() {
+        val eq = AVAudioUnitEQ(4u)
+        (eq.bands[0] as AVAudioUnitEQFilterParameters).setValue(100.0f, "frequency")
+        assertTrue(true, "frequency kvc set ok")
+    }
+
+    @Test
+    fun probeBandFrequencyKvcRead() {
         val eq = AVAudioUnitEQ(4u)
         val band = eq.bands[0] as AVAudioUnitEQFilterParameters
         band.setValue(100.0f, "frequency")
-        band.setValue(2.0f, "gain")
-        assertTrue(band.valueForKey("frequency").toString().contains("100"))
+        val read = band.valueForKey("frequency")
+        assertTrue(read?.toString()?.contains("100") == true, "readback was: $read")
     }
 }

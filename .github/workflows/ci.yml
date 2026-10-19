@@ -45,7 +45,7 @@ jobs:
         run: |
           set -o pipefail
           ./gradlew :core:iosSimulatorArm64Test --console=plain 2>&1 | tee /tmp/step-ios-test.log || {
-            errs=$(grep -E '^e: |error: |What went wrong|FAILED' /tmp/step-ios-test.log | head -60 | tr '\n' '~')
+            errs=$(grep -E '^e: |error: |FAILED|What went wrong|Error|Exception|expected|readback|ok$' /tmp/step-ios-test.log | head -100 | tr '\n' '~')
             [ -z "$errs" ] && errs=$(tail -40 /tmp/step-ios-test.log | tr '\n' '~')
             echo "::error title=Shared tests (iOS simulator) failed::$errs"
             exit 1

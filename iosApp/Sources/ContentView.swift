@@ -69,6 +69,16 @@ struct ContentView: View {
                                     .foregroundStyle(player.speed == s ? Color.red : Color.primary)
                             }
                         }
+                        HStack(spacing: 8) {
+                            Button(player.presetLabel) { player.cyclePreset() }
+                                .buttonStyle(.bordered)
+                            Button("Bass") { player.toggleBass() }
+                                .buttonStyle(.bordered)
+                                .foregroundStyle(player.bassBoostOn ? Color.red : Color.primary)
+                            Button("Wide") { player.toggleWide() }
+                                .buttonStyle(.bordered)
+                                .foregroundStyle(player.wideOn ? Color.red : Color.primary)
+                        }
                         if let error = player.errorMessage {
                             Text(error).font(.footnote).foregroundStyle(.red)
                         }

@@ -19,11 +19,13 @@ import platform.AVFoundation.AVAssetExportSession
 import platform.AVFoundation.AVFileTypeAppleM4A
 import platform.AVFoundation.AVURLAsset
 import platform.Foundation.NSFileManager
+import platform.Foundation.NSObject
 import platform.Foundation.NSTemporaryDirectory
 import platform.Foundation.NSTimer
 import platform.Foundation.NSURL
 import platform.darwin.dispatch_async
 import platform.darwin.dispatch_get_main_queue
+import kotlin.math.log10
 import kotlin.math.sin
 
 /**
@@ -62,6 +64,10 @@ class DarwinAudioEngine : AudioEngine {
     private var timer: NSTimer? = null
     private var tick: Int = 0
     private var audioSessionConfigured: Boolean = false
+    private var currentPreset: SoundPreset = SoundPreset.STUDIO_FLAT
+    private var bassBoostEnabled: Boolean = false
+    private var virtualizerEnabled: Boolean = false
+    private var hiResEnabled: Boolean = true
 
     // NOTE: no default value here — Kotlin forbids defaults on overrides;
     // the interface default (= 0) still applies to interface-typed callers.
@@ -128,19 +134,24 @@ class DarwinAudioEngine : AudioEngine {
     }
 
     override fun setSoundPreset(preset: SoundPreset) {
-        // EQ band wiring lands in the DSP slice; transport-only build.
+        currentPreset = preset
+        applyEq()
     }
 
     override fun setBassBoost(enabled: Boolean) {
-        // See setSoundPreset.
+        bassBoostEnabled = enabled
+        applyEq()
     }
 
     override fun setVirtualizer(enabled: Boolean) {
-        // See setSoundPreset.
+        virtualizerEnabled = enabled
+        applyEq()
     }
 
     override fun setHiRes(enabled: Boolean) {
-        // See setSoundPreset.
+        // iOS renders through the system mixer at float32; there is no
+        // bit-depth switch to flip. Stored for state parity with Android.
+        hiResEnabled = enabled
     }
 
     override fun setSpeed(speed: Float) {
@@ -178,14 +189,45 @@ class DarwinAudioEngine : AudioEngine {
             audioEngine.attachNode(eqNode)
             audioEngine.connect(audioPlayer, eqNode, null)
             audioEngine.connect(eqNode, audioEngine.mainMixerNode, null)
-            // TODO(enableRate): KN member name pending probe result.
+            // enableRate has no Kotlin binding name in this KN version; KVC
+            // sets the ObjC property directly (it is KVC-compliant).
+            audioPlayer.setValue(true, forKey = "enableRate")
             audioEngine.mainMixerNode.outputVolume = if (ducked) 0.25f else 1.0f
             engine = audioEngine
             player = audioPlayer
             eq = eqNode
+            applyEq()
         }
         return audioEngine to audioPlayer
     }
+
+    /**
+     * Maps the shared 3-band preset multipliers onto four parametric EQ
+     * bands (Android parity: bassBoost multiplies the bass multiplier by
+     * 1.35). The band objects expose no Kotlin property names in this KN
+     * build, so values go through KVC (frequency/gain/bandwidth are
+     * KVC-compliant ObjC properties). Virtualizer is approximated with a
+     * presence lift — iOS has no stereo-phase virtualizer node.
+     */
+    private fun applyEq() {
+        val eqNode = eq ?: return
+        val bandsList = eqNode.bands ?: return
+        if (bandsList.size < 4) return
+        val bassMult = if (bassBoostEnabled) currentPreset.bass * 1.35f else currentPreset.bass
+        setBand(bandsList, 0, 100f, toDb(bassMult), 1.0f)
+        setBand(bandsList, 1, 1000f, toDb(currentPreset.mid), 1.0f)
+        setBand(bandsList, 2, 8000f, toDb(currentPreset.treble), 1.0f)
+        setBand(bandsList, 3, 3500f, if (virtualizerEnabled) 1.5f else 0f, 2.0f)
+    }
+
+    private fun setBand(bandsList: List<*>, index: Int, frequency: Float, gainDb: Float, bandwidth: Float) {
+        val band = bandsList.getOrNull(index) as? NSObject ?: return
+        band.setValue(frequency, forKey = "frequency")
+        band.setValue(gainDb, forKey = "gain")
+        band.setValue(bandwidth, forKey = "bandwidth")
+    }
+
+    private fun toDb(multiplier: Float): Float = (20.0 * log10(multiplier.toDouble())).toFloat()
 
     private fun ensureStarted(): Boolean {
         val (audioEngine, _) = requireGraph()

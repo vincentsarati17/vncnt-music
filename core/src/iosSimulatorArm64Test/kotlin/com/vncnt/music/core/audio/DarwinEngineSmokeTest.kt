@@ -5,6 +5,7 @@ import com.vncnt.music.core.model.Track
 import kotlinx.cinterop.ExperimentalForeignApi
 import platform.AVFAudio.AVAudioPlayerNode
 import platform.AVFAudio.AVAudioUnitEQ
+import platform.Foundation.NSObject
 import kotlin.test.Test
 import kotlin.test.assertTrue
 
@@ -65,20 +66,18 @@ class DarwinEngineSmokeTest {
     }
 
     /**
-     * Compile probes for Kotlin/Native AVFAudio member names. Any miss
-     * surfaces as a CI annotation with the exact compiler error, which is
-     * how the engine's binding spellings get settled without a local Mac.
+     * Runtime probes for the KVC-based DSP bindings the engine relies on
+     * (no Kotlin member names exist for these ObjC properties in this KN
+     * build). Any miss surfaces as a CI annotation with the exact error.
      */
     @Test
-    fun avAudioBindingProbes() {
+    fun avAudioDspKvcProbes() {
         val node = AVAudioPlayerNode()
-        node.enableRate = true
-        node.isEnableRate = true
+        node.setValue(true, forKey = "enableRate")
         val eq = AVAudioUnitEQ(4u)
-        val band = eq.bands[0]
-        band.frequency = 100f
-        band.gain = 2f
-        band.bandwidth = 1.0f
-        assertTrue(band.frequency == 100f)
+        val band = eq.bands[0] as NSObject
+        band.setValue(100.0f, forKey = "frequency")
+        band.setValue(2.0f, forKey = "gain")
+        assertTrue(band.valueForKey("frequency").toString().contains("100"))
     }
 }

@@ -19,10 +19,15 @@ final class PlayerState: ObservableObject {
     @Published var isReady: Bool = false
     @Published var speed: Float = 1.0
     @Published var usingDemoLibrary: Bool = true
+    @Published var presetLabel: String = ShellPresets.shared.label(preset: ShellPresets.shared.initial())
+    @Published var bassBoostOn: Bool = true
+    @Published var wideOn: Bool = true
 
     let engine: DarwinAudioEngine = DarwinAudioEngine()
     let nowPlaying = NowPlayingPresenter()
     let deviceLibrary = DeviceLibraryScanner()
+    // Opaque Kotlin enum value; only Kotlin-side code names its entries.
+    private var preset = ShellPresets.shared.initial()
     private var events: EngineEvents? = nil
     private var didBindRemoteCommands = false
 
@@ -55,6 +60,9 @@ final class PlayerState: ObservableObject {
             currentTrack = demo
             durationMs = Int64(demo.durationSeconds) * 1000
             isReady = true
+            engine.setSoundPreset(preset: preset)
+            engine.setBassBoost(enabled: bassBoostOn)
+            engine.setVirtualizer(enabled: wideOn)
             deviceLibrary.onFinished = { [weak self] in
                 DispatchQueue.main.async { self?.applyDeviceLibrary(showHint: true) }
             }
@@ -147,5 +155,22 @@ final class PlayerState: ObservableObject {
     func setSpeed(_ value: Float) {
         speed = value
         engine.setSpeed(speed: value)
+    }
+
+    /// Cycles the shared SoundPreset list (label comes from Kotlin too).
+    func cyclePreset() {
+        preset = ShellPresets.shared.next(current: preset)
+        presetLabel = ShellPresets.shared.label(preset: preset)
+        engine.setSoundPreset(preset: preset)
+    }
+
+    func toggleBass() {
+        bassBoostOn.toggle()
+        engine.setBassBoost(enabled: bassBoostOn)
+    }
+
+    func toggleWide() {
+        wideOn.toggle()
+        engine.setVirtualizer(enabled: wideOn)
     }
 }

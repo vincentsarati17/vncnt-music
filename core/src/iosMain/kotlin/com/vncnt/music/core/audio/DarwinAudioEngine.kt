@@ -2,41 +2,54 @@ package com.vncnt.music.core.audio
 
 import com.vncnt.music.core.model.SoundPreset
 import com.vncnt.music.core.model.Track
-import kotlinx.cinterop.CValue
 import kotlinx.cinterop.ExperimentalForeignApi
-import platform.AVFoundation.AVPlayer
-import platform.AVFoundation.AVPlayerItem
-import platform.AVFoundation.AVPlayerItemDidPlayToEndTimeNotification
-import platform.AVFoundation.addPeriodicTimeObserverForInterval
-import platform.AVFoundation.currentItem
-import platform.AVFoundation.duration
-import platform.AVFoundation.pause
-import platform.AVFoundation.play
-import platform.AVFoundation.rate
-import platform.AVFoundation.removeTimeObserver
-import platform.AVFoundation.replaceCurrentItemWithPlayerItem
-import platform.AVFoundation.seekToTime
-import platform.AVFoundation.volume
+import platform.AVFAudio.AVAudioEngine
+import platform.AVFAudio.AVAudioFile
+import platform.AVFAudio.AVAudioPlayerNode
 import platform.AVFAudio.AVAudioSession
 import platform.AVFAudio.AVAudioSessionCategoryPlayback
+import platform.AVFAudio.AVAudioUnitEQ
+import platform.AVFAudio.attachNode
+import platform.AVFAudio.connect
+import platform.AVFAudio.enableRate
+import platform.AVFAudio.lastRenderTime
+import platform.AVFAudio.length
+import platform.AVFAudio.pause
+import platform.AVFAudio.play
+import platform.AVFAudio.playerTimeForNodeTime
+import platform.AVFAudio.rate
+import platform.AVFAudio.sampleRate
+import platform.AVFAudio.sampleTime
+import platform.AVFAudio.scheduleSegment
 import platform.AVFAudio.setActive
-import platform.CoreMedia.CMTime
-import platform.CoreMedia.CMTimeGetSeconds
-import platform.CoreMedia.CMTimeMakeWithSeconds
-import platform.Foundation.NSNotificationCenter
-import platform.Foundation.NSOperationQueue
+import platform.AVFAudio.startAndReturnError
+import platform.AVFAudio.stop
+import platform.AVFoundation.AVAssetExportPresetAppleM4A
+import platform.AVFoundation.AVAssetExportSession
+import platform.AVFoundation.AVFileTypeAppleM4A
+import platform.AVFoundation.AVURLAsset
+import platform.AVFoundation.exportAsynchronously
+import platform.AVFoundation.outputFileType
+import platform.AVFoundation.outputURL
+import platform.Foundation.NSFileManager
+import platform.Foundation.NSTemporaryDirectory
+import platform.Foundation.NSTimer
 import platform.Foundation.NSURL
-import platform.darwin.NSObjectProtocol
+import platform.darwin.dispatch_async
 import platform.darwin.dispatch_get_main_queue
 import kotlin.math.sin
 
 /**
- * AVFoundation-backed engine for iOS. Plays real local files and remote
- * streams through AVPlayer; anything else (notably Android content:// URIs)
- * reports an honest error instead of faking playback.
+ * AVAudioEngine-backed engine for iOS. The graph is
+ * player → AVAudioUnitEQ → mainMixer, so DSP presets are real filter
+ * bands (see setSoundPreset). Transport uses scheduleSegment (seek is an
+ * explicit startingFrame), position comes from player render time, and
+ * end-of-track from the schedule completion handler. ipod-library:// assets
+ * are exported to a temp m4a first (AVAudioFile needs a plain file URL);
+ * Android content:// URIs and remote streams report an honest error instead
+ * of faking playback.
  *
  * Observers post on the main queue, so listener callbacks are main-safe.
- * DSP presets have no AVAudioUnit counterpart yet and are accepted no-ops.
  * Every method is safe to call before/without playback (nil-guarded) so the
  * engine stays headless-test friendly.
  */
@@ -45,15 +58,21 @@ class DarwinAudioEngine : AudioEngine {
 
     override var listener: AudioEngineListener? = null
 
-    private var player: AVPlayer? = null
+    private var engine: AVAudioEngine? = null
+    private var player: AVAudioPlayerNode? = null
+    private var eq: AVAudioUnitEQ? = null
+    private var currentFile: AVAudioFile? = null
     private var currentTrack: Track? = null
     private var currentPositionSeconds: Int = 0
+    private var currentDurationMs: Long = 1L
     private var playbackSpeed: Float = 1.0f
     private var ducked: Boolean = false
     private var isPlaying: Boolean = false
 
-    private var timeObserver: Any? = null
-    private var endObserver: NSObjectProtocol? = null
+    private var engineStarted: Boolean = false
+    private var startFrames: Long = 0L
+    private var loadId: Int = 0
+    private var timer: NSTimer? = null
     private var tick: Int = 0
     private var audioSessionConfigured: Boolean = false
 
@@ -63,27 +82,23 @@ class DarwinAudioEngine : AudioEngine {
         stopInternal()
         configureAudioSession()
         currentTrack = track
+        currentFile = null
         currentPositionSeconds = startPositionSeconds.coerceAtLeast(0)
+        currentDurationMs = (track.durationSeconds.toLong() * 1000L).coerceAtLeast(1L)
         val url = resolveUrl(track)
         if (url == null) {
             listener?.onError("No playable audio source for \"${track.title}\"")
             return
         }
-        val item = AVPlayerItem.playerItemWithURL(url)
-        val audioPlayer = requirePlayer()
-        audioPlayer.replaceCurrentItemWithPlayerItem(item)
-        observeEndOfItem(item)
-        observeTime(audioPlayer)
-        audioPlayer.volume = if (ducked) 0.25f else 1.0f
-        if (startPositionSeconds > 0) {
-            audioPlayer.seekToTime(CMTimeMakeWithSeconds(startPositionSeconds.toDouble(), 600))
+        val myLoad = ++loadId
+        val scheme = url.scheme ?: ""
+        when {
+            scheme == "ipod-library" -> exportAndPlay(url, track, startPositionSeconds, myLoad)
+            scheme == "http" || scheme == "https" -> listener?.onError(
+                "Remote streams are not playable in this iOS build yet."
+            )
+            else -> openAndPlay(url, track, startPositionSeconds, myLoad)
         }
-        isPlaying = true
-        audioPlayer.play()
-        if (playbackSpeed != 1.0f) {
-            audioPlayer.rate = playbackSpeed
-        }
-        emitPosition()
     }
 
     override fun pause() {
@@ -92,13 +107,13 @@ class DarwinAudioEngine : AudioEngine {
     }
 
     override fun resume() {
-        val audioPlayer = player
-        if (audioPlayer == null || audioPlayer.currentItem == null) return
+        val audioPlayer = player ?: return
+        if (currentTrack == null || currentFile == null) return
         isPlaying = true
         audioPlayer.play()
-        if (playbackSpeed != 1.0f) {
-            audioPlayer.rate = playbackSpeed
-        }
+        audioPlayer.rate = playbackSpeed
+        startTimerIfNeeded()
+        emitPosition()
     }
 
     override fun stop() {
@@ -113,18 +128,20 @@ class DarwinAudioEngine : AudioEngine {
     }
 
     override fun seekToMs(positionMs: Long) {
-        currentTrack ?: return
-        val durationMs = durationMs()
-        val clamped = positionMs.coerceIn(0L, durationMs)
-        player?.seekToTime(CMTimeMakeWithSeconds(clamped / 1000.0, 600))
+        val track = currentTrack ?: return
+        // Seek reuses the already-open file: device-library exports are
+        // unlinked after open, so the handle is the only source.
+        val file = currentFile ?: return
+        val clamped = positionMs.coerceIn(0L, currentDurationMs)
         currentPositionSeconds = (clamped / 1000L).toInt()
-        val progress = progressOf(clamped, durationMs)
-        listener?.onPosition(currentPositionSeconds, progress)
-        listener?.onPositionMs(clamped, currentPositionSeconds, progress)
+        val wasPlaying = isPlaying
+        val rate = sampleRateOf(file, track)
+        scheduleAndPlay(file, (clamped.toDouble() / 1000.0 * rate).toLong(), rate, wasPlaying)
+        emitPosition()
     }
 
     override fun setSoundPreset(preset: SoundPreset) {
-        // No AVAudioUnitEQ counterpart yet; accepted and ignored (future slice).
+        // EQ band wiring lands in the DSP slice; transport-only build.
     }
 
     override fun setBassBoost(enabled: Boolean) {
@@ -141,32 +158,58 @@ class DarwinAudioEngine : AudioEngine {
 
     override fun setSpeed(speed: Float) {
         playbackSpeed = speed.coerceIn(0.5f, 2.0f)
-        if (isPlaying) {
-            player?.let { it.rate = playbackSpeed }
-        }
+        player?.rate = playbackSpeed
     }
 
     override fun setDucked(duck: Boolean) {
         ducked = duck
-        player?.let { it.volume = if (duck) 0.25f else 1.0f }
+        engine?.mainMixerNode?.outputVolume = if (duck) 0.25f else 1.0f
     }
 
     override fun release() {
         stopInternal()
+        engine?.stop()
+        engineStarted = false
         currentTrack = null
+        currentFile = null
         listener = null
+        engine = null
         player = null
+        eq = null
     }
 
     // -- internals -----------------------------------------------------------
 
-    private fun requirePlayer(): AVPlayer {
+    private fun requireGraph(): Pair<AVAudioEngine, AVAudioPlayerNode> {
+        var audioEngine = engine
         var audioPlayer = player
-        if (audioPlayer == null) {
-            audioPlayer = AVPlayer()
+        if (audioEngine == null || audioPlayer == null) {
+            audioEngine = AVAudioEngine()
+            audioPlayer = AVAudioPlayerNode()
+            eq = AVAudioUnitEQ(4)
+            audioEngine.attachNode(audioPlayer)
+            audioEngine.attachNode(eq)
+            audioEngine.connect(audioPlayer, eq, null)
+            audioEngine.connect(eq, audioEngine.mainMixerNode, null)
+            audioPlayer.enableRate = true
+            audioEngine.mainMixerNode.outputVolume = if (ducked) 0.25f else 1.0f
+            engine = audioEngine
             player = audioPlayer
         }
-        return audioPlayer
+        return audioEngine to audioPlayer
+    }
+
+    private fun ensureStarted(): Boolean {
+        val (audioEngine, _) = requireGraph()
+        if (!engineStarted) {
+            val ok = audioEngine.startAndReturnError(null)
+            if (!ok) {
+                listener?.onError("The audio engine failed to start.")
+                return false
+            }
+            engineStarted = true
+        }
+        return true
     }
 
     /**
@@ -200,54 +243,109 @@ class DarwinAudioEngine : AudioEngine {
         }
     }
 
-    private fun observeTime(audioPlayer: AVPlayer) {
-        timeObserver?.let { audioPlayer.removeTimeObserver(it) }
-        timeObserver = audioPlayer.addPeriodicTimeObserverForInterval(
-            CMTimeMakeWithSeconds(0.3, 600),
-            dispatch_get_main_queue()
-        ) { time: CValue<CMTime> ->
-            val seconds = CMTimeGetSeconds(time)
-            if (!seconds.isNaN()) {
-                currentPositionSeconds = seconds.toInt()
-                val totalMs = durationMs()
-                val posMs = (seconds * 1000.0).toLong().coerceIn(0L, totalMs)
-                val progress = progressOf(posMs, totalMs)
-                listener?.onPosition(currentPositionSeconds, progress)
-                listener?.onPositionMs(posMs, currentPositionSeconds, progress)
-                emitLevels()
+    private fun openAndPlay(url: NSURL, track: Track, startPosition: Int, myLoad: Int) {
+        val file = try {
+            AVAudioFile(url, null)
+        } catch (t: Throwable) {
+            listener?.onError("Could not open \"${track.title}\" for playback.")
+            return
+        }
+        playOpenedFile(file, track, startPosition, myLoad)
+    }
+
+    /**
+     * AVAudioFile only reads plain file URLs; device-library assets are
+     * exported to a temp m4a first. DRM-protected items fail the export and
+     * get an honest error.
+     */
+    private fun exportAndPlay(url: NSURL, track: Track, startPosition: Int, myLoad: Int) {
+        val exporter = try {
+            AVAssetExportSession(AVURLAsset(url, null), AVAssetExportPresetAppleM4A)
+        } catch (t: Throwable) {
+            null
+        }
+        if (exporter == null) {
+            listener?.onError("Could not prepare \"${track.title}\" from the device library.")
+            return
+        }
+        val tempUrl = NSURL.fileURLWithPath(NSTemporaryDirectory() + "vncnt-device-export.m4a")
+        exporter.outputURL = tempUrl
+        exporter.outputFileType = AVFileTypeAppleM4A
+        exporter.exportAsynchronously {
+            dispatch_async(dispatch_get_main_queue()) {
+                if (myLoad != loadId) return@dispatch_async
+                openAndPlay(tempUrl, track, startPosition, myLoad)
+                NSFileManager.defaultManager().removeItemAtURL(tempUrl, null)
             }
         }
     }
 
-    private fun observeEndOfItem(item: AVPlayerItem) {
-        val center = NSNotificationCenter.defaultCenter()
-        endObserver?.let { center.removeObserver(it) }
-        endObserver = center.addObserverForName(
-            AVPlayerItemDidPlayToEndTimeNotification,
-            item,
-            NSOperationQueue.mainQueue()
-        ) {
-            handlePlaybackEnded()
+    private fun playOpenedFile(file: AVAudioFile, track: Track, startPosition: Int, myLoad: Int) {
+        currentFile = file
+        val rate = sampleRateOf(file, track)
+        val startFrame = (startPosition.coerceAtLeast(0).toLong() * rate).toLong()
+        scheduleAndPlay(file, startFrame, rate, true)
+    }
+
+    private fun sampleRateOf(file: AVAudioFile, track: Track): Double {
+        val frames = file.length
+        val seconds = track.durationSeconds.coerceAtLeast(1).toDouble()
+        return if (frames > 0L) frames.toDouble() / seconds else 44100.0
+    }
+
+    private fun scheduleAndPlay(file: AVAudioFile, fromFrame: Long, rate: Double, beginPlaying: Boolean) {
+        if (!ensureStarted()) return
+        val (_, audioPlayer) = requireGraph()
+        val myLoad = ++loadId
+        startFrames = fromFrame.coerceAtLeast(0L)
+        val count = (file.length - startFrames).coerceAtLeast(0L).toUInt()
+        audioPlayer.stop()
+        audioPlayer.scheduleSegment(file, startFrames, count, null) {
+            dispatch_async(dispatch_get_main_queue()) {
+                if (myLoad == loadId) handlePlaybackEnded()
+            }
+        }
+        audioPlayer.rate = playbackSpeed
+        if (beginPlaying) {
+            isPlaying = true
+            audioPlayer.play()
+            startTimerIfNeeded()
+            emitPosition()
         }
     }
 
     private fun handlePlaybackEnded() {
         isPlaying = false
-        val durMs = durationMs()
+        timer?.invalidate()
+        timer = null
+        val durMs = currentDurationMs
         currentPositionSeconds = (durMs / 1000L).toInt()
         listener?.onPosition(currentPositionSeconds, 1f)
         listener?.onPositionMs(durMs, currentPositionSeconds, 1f)
         listener?.onTrackCompleted()
     }
 
-    private fun durationMs(): Long {
-        val itemSeconds = player?.currentItem?.duration?.let { CMTimeGetSeconds(it) }
-        val seconds = if (itemSeconds != null && !itemSeconds.isNaN() && itemSeconds > 0.0) {
-            itemSeconds
-        } else {
-            currentTrack?.durationSeconds?.toDouble() ?: 0.0
+    private fun startTimerIfNeeded() {
+        if (timer != null) return
+        timer = NSTimer.scheduledTimerWithTimeInterval(0.3, true) {
+            onTimerTick()
         }
-        return (seconds * 1000.0).toLong().coerceAtLeast(1L)
+    }
+
+    private fun onTimerTick() {
+        if (!isPlaying) return
+        val audioPlayer = player ?: return
+        val nodeTime = audioPlayer.lastRenderTime ?: return
+        val playerTime = audioPlayer.playerTimeForNodeTime(nodeTime) ?: return
+        val rate = playerTime.sampleRate
+        if (rate <= 0.0) return
+        val frames = startFrames + playerTime.sampleTime
+        val posMs = (frames / rate * 1000.0).toLong().coerceIn(0L, currentDurationMs)
+        currentPositionSeconds = (posMs / 1000L).toInt()
+        val progress = progressOf(posMs, currentDurationMs)
+        listener?.onPosition(currentPositionSeconds, progress)
+        listener?.onPositionMs(posMs, currentPositionSeconds, progress)
+        emitLevels()
     }
 
     private fun progressOf(positionMs: Long, durationMs: Long): Float {
@@ -255,7 +353,7 @@ class DarwinAudioEngine : AudioEngine {
     }
 
     private fun emitPosition() {
-        val durMs = durationMs()
+        val durMs = currentDurationMs
         val posMs = (currentPositionSeconds * 1000L).coerceIn(0L, durMs)
         val progress = progressOf(posMs, durMs)
         listener?.onPosition(currentPositionSeconds, progress)
@@ -273,11 +371,9 @@ class DarwinAudioEngine : AudioEngine {
 
     private fun stopInternal() {
         isPlaying = false
-        timeObserver?.let { player?.removeTimeObserver(it) }
-        timeObserver = null
-        endObserver?.let { NSNotificationCenter.defaultCenter().removeObserver(it) }
-        endObserver = null
-        player?.pause()
-        player?.replaceCurrentItemWithPlayerItem(null)
+        loadId++
+        timer?.invalidate()
+        timer = null
+        player?.stop()
     }
 }

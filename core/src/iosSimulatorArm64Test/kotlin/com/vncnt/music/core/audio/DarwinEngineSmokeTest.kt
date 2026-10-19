@@ -1,5 +1,6 @@
 package com.vncnt.music.core.audio
 
+import com.vncnt.music.core.model.SoundPreset
 import com.vncnt.music.core.model.Track
 import kotlin.test.Test
 import kotlin.test.assertTrue
@@ -50,6 +51,10 @@ class DarwinEngineSmokeTest {
         engine.setSpeed(1.5f)
         engine.setDucked(true)
         engine.setDucked(false)
+        engine.setSoundPreset(SoundPreset.BASS_BOOST)
+        engine.setBassBoost(true)
+        engine.setVirtualizer(false)
+        engine.setHiRes(true)
         engine.stop()
         engine.release()
     }

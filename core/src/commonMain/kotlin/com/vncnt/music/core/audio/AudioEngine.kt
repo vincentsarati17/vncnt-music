@@ -5,9 +5,10 @@ import com.vncnt.music.core.model.Track
 
 /**
  * Platform-agnostic playback contract. Android implements it with MediaPlayer
- * + AudioTrack synthesis ([HiFiAudioEngine]); iOS will back it with AVPlayer.
- * Callers (ViewModels, widgets, tests) program to this interface and never
- * touch platform engines directly.
+ * + AudioTrack synthesis ([HiFiAudioEngine]); iOS backs it with an
+ * AVAudioEngine graph (player → AVAudioUnitEQ → mixer) so DSP presets are
+ * real filter bands. Callers (ViewModels, widgets, tests) program to this
+ * interface and never touch platform engines directly.
  */
 interface AudioEngineListener {
     fun onPosition(positionSeconds: Int, progress: Float)

@@ -10,6 +10,7 @@ import platform.AVFAudio.AVAudioSession
 import platform.AVFAudio.AVAudioSessionCategoryPlayback
 import platform.AVFAudio.AVAudioUnitEQ
 import platform.AVFAudio.AVAudioUnitEQFilterParameters
+import platform.AVFAudio.AVAudioUnitTimePitch
 import platform.AVFAudio.rate
 import platform.AVFAudio.sampleRate
 import platform.AVFAudio.setActive
@@ -50,6 +51,7 @@ class DarwinAudioEngine : AudioEngine {
 
     private var engine: AVAudioEngine? = null
     private var player: AVAudioPlayerNode? = null
+    private var timePitch: AVAudioUnitTimePitch? = null
     private var eq: AVAudioUnitEQ? = null
     private var currentFile: AVAudioFile? = null
     private var currentTrack: Track? = null
@@ -105,7 +107,6 @@ class DarwinAudioEngine : AudioEngine {
         if (currentTrack == null || currentFile == null) return
         isPlaying = true
         audioPlayer.play()
-        audioPlayer.rate = playbackSpeed
         startTimerIfNeeded()
         emitPosition()
     }
@@ -157,7 +158,7 @@ class DarwinAudioEngine : AudioEngine {
 
     override fun setSpeed(speed: Float) {
         playbackSpeed = speed.coerceIn(0.5f, 2.0f)
-        player?.rate = playbackSpeed
+        timePitch?.rate = playbackSpeed
     }
 
     override fun setDucked(duck: Boolean) {
@@ -174,6 +175,7 @@ class DarwinAudioEngine : AudioEngine {
         listener = null
         engine = null
         player = null
+        timePitch = null
         eq = null
     }
 
@@ -185,17 +187,22 @@ class DarwinAudioEngine : AudioEngine {
         if (audioEngine == null || audioPlayer == null) {
             audioEngine = AVAudioEngine()
             audioPlayer = AVAudioPlayerNode()
+            val pitchNode = AVAudioUnitTimePitch()
             val eqNode = AVAudioUnitEQ(4u)
             audioEngine.attachNode(audioPlayer)
+            audioEngine.attachNode(pitchNode)
             audioEngine.attachNode(eqNode)
-            audioEngine.connect(audioPlayer, eqNode, null)
+            audioEngine.connect(audioPlayer, pitchNode, null)
+            audioEngine.connect(pitchNode, eqNode, null)
             audioEngine.connect(eqNode, audioEngine.mainMixerNode, null)
-            // enableRate has no Kotlin binding name in this KN version; KVC
-            // sets the ObjC property directly (it is KVC-compliant).
-            audioPlayer.setValue(true, "enableRate")
+            // Speed lives on the TimePitch node: player.rate needs an
+            // enableRate flag that is not settable through KN bindings or
+            // KVC, while TimePitch.rate always applies (and keeps pitch).
+            pitchNode.rate = playbackSpeed
             audioEngine.mainMixerNode.outputVolume = if (ducked) 0.25f else 1.0f
             engine = audioEngine
             player = audioPlayer
+            timePitch = pitchNode
             eq = eqNode
             applyEq()
         }
@@ -336,7 +343,6 @@ class DarwinAudioEngine : AudioEngine {
                 if (myLoad == loadId) handlePlaybackEnded()
             }
         }
-        audioPlayer.rate = playbackSpeed
         if (beginPlaying) {
             isPlaying = true
             audioPlayer.play()

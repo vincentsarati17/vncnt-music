@@ -28,7 +28,7 @@ import platform.AVFoundation.AVAssetExportPresetAppleM4A
 import platform.AVFoundation.AVAssetExportSession
 import platform.AVFoundation.AVFileTypeAppleM4A
 import platform.AVFoundation.AVURLAsset
-import platform.AVFoundation.exportAsynchronously
+import platform.AVFoundation.exportAsynchronouslyWithCompletionHandler
 import platform.AVFoundation.outputFileType
 import platform.AVFoundation.outputURL
 import platform.Foundation.NSFileManager
@@ -186,15 +186,16 @@ class DarwinAudioEngine : AudioEngine {
         if (audioEngine == null || audioPlayer == null) {
             audioEngine = AVAudioEngine()
             audioPlayer = AVAudioPlayerNode()
-            eq = AVAudioUnitEQ(4)
+            val eqNode = AVAudioUnitEQ(4)
             audioEngine.attachNode(audioPlayer)
-            audioEngine.attachNode(eq)
-            audioEngine.connect(audioPlayer, eq, null)
-            audioEngine.connect(eq, audioEngine.mainMixerNode, null)
+            audioEngine.attachNode(eqNode)
+            audioEngine.connect(audioPlayer, eqNode, null)
+            audioEngine.connect(eqNode, audioEngine.mainMixerNode, null)
             audioPlayer.enableRate = true
             audioEngine.mainMixerNode.outputVolume = if (ducked) 0.25f else 1.0f
             engine = audioEngine
             player = audioPlayer
+            eq = eqNode
         }
         return audioEngine to audioPlayer
     }
@@ -271,7 +272,7 @@ class DarwinAudioEngine : AudioEngine {
         val tempUrl = NSURL.fileURLWithPath(NSTemporaryDirectory() + "vncnt-device-export.m4a")
         exporter.outputURL = tempUrl
         exporter.outputFileType = AVFileTypeAppleM4A
-        exporter.exportAsynchronously {
+        exporter.exportAsynchronouslyWithCompletionHandler {
             dispatch_async(dispatch_get_main_queue()) {
                 if (myLoad != loadId) return@dispatch_async
                 openAndPlay(tempUrl, track, startPosition, myLoad)

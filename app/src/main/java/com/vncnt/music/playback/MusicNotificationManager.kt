@@ -47,7 +47,10 @@ object MusicNotificationManager {
         context: Context,
         title: String,
         artist: String,
-        isPlaying: Boolean
+        isPlaying: Boolean,
+        // androidx.media ships MediaSessionCompat under the legacy
+        // support-package name; MediaStyle.setMediaSession expects this Token.
+        sessionToken: android.support.v4.media.session.MediaSessionCompat.Token? = null
     ): Notification {
         createChannel(context)
 
@@ -88,10 +91,17 @@ object MusicNotificationManager {
             .addAction(toggleIcon, toggleTitle, actionPi(ACTION_TOGGLE, 12))
             .addAction(android.R.drawable.ic_media_next, "Next", actionPi(ACTION_NEXT, 13))
             .addAction(android.R.drawable.ic_menu_close_clear_cancel, "Stop", actionPi(ACTION_STOP, 14))
-            .setStyle(
-                androidx.media.app.NotificationCompat.MediaStyle()
-                    .setShowActionsInCompactView(0, 1, 2)
-            )
+            .also { builder ->
+                val style = androidx.media.app.NotificationCompat.MediaStyle()
+                style.setShowActionsInCompactView(0, 1, 2)
+                // Without a session token Android treats this as a plain
+                // notification: no lock-screen media widget, no quick-panel
+                // media controls.
+                if (sessionToken != null) {
+                    style.setMediaSession(sessionToken)
+                }
+                builder.setStyle(style)
+            }
             .build()
     }
 }

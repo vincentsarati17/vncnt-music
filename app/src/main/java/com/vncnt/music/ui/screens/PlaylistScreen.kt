@@ -96,6 +96,7 @@ fun PlaylistScreen(
     onOpenEqualizer: () -> Unit,
     onScanLocalAudio: () -> Unit,
     onNavigateBack: () -> Unit,
+    onOpenNowPlaying: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -389,7 +390,8 @@ fun PlaylistScreen(
                     isPlaying = isCurrent && playbackState.isPlaying,
                     isCurrent = isCurrent,
                     onClick = { onTrackClick(track) },
-                    onToggleFavorite = { onToggleFavorite(track) }
+                    onToggleFavorite = { onToggleFavorite(track) },
+                    onOpenNowPlaying = onOpenNowPlaying
                 )
             }
         }
@@ -403,10 +405,12 @@ fun PlaylistItemRow(
     isPlaying: Boolean,
     isCurrent: Boolean,
     onClick: () -> Unit,
-    onToggleFavorite: () -> Unit
+    onToggleFavorite: () -> Unit,
+    onOpenNowPlaying: () -> Unit = {}
 ) {
     val context = LocalContext.current
     val artistThumbResId = rememberDrawableResId(context, track.imageResName)
+    var rowMenuExpanded by remember { mutableStateOf(false) }
 
     val rowModifier = if (isCurrent) {
         Modifier
@@ -538,19 +542,80 @@ fun PlaylistItemRow(
             )
         }
 
-        // 3-dots action icon
-        IconButton(
-            onClick = onClick,
-            modifier = Modifier
-                .size(32.dp)
-                .testTag("options_button_${track.id}")
-        ) {
-            Icon(
-                imageVector = Icons.Default.MoreVert,
-                contentDescription = "More options",
-                tint = InactiveHeart,
-                modifier = Modifier.size(20.dp)
-            )
+        // 3-dots action menu
+        Box {
+            IconButton(
+                onClick = { rowMenuExpanded = true },
+                modifier = Modifier
+                    .size(32.dp)
+                    .testTag("options_button_${track.id}")
+            ) {
+                Icon(
+                    imageVector = Icons.Default.MoreVert,
+                    contentDescription = "More options",
+                    tint = InactiveHeart,
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+
+            DropdownMenu(
+                expanded = rowMenuExpanded,
+                onDismissRequest = { rowMenuExpanded = false },
+                modifier = Modifier.glassmorphic(
+                    shape = RoundedCornerShape(16.dp),
+                    borderBrush = glassBorderBrush()
+                )
+            ) {
+                DropdownMenuItem(
+                    text = { Text("Play", color = TextPrimary) },
+                    leadingIcon = {
+                        Icon(
+                            imageVector = Icons.Default.PlayArrow,
+                            contentDescription = null,
+                            tint = CoralRed
+                        )
+                    },
+                    onClick = {
+                        rowMenuExpanded = false
+                        onClick()
+                    }
+                )
+                DropdownMenuItem(
+                    text = {
+                        Text(
+                            if (track.isFavorite) "Remove from Favorites" else "Add to Favorites",
+                            color = TextPrimary
+                        )
+                    },
+                    leadingIcon = {
+                        Icon(
+                            imageVector = if (track.isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                            contentDescription = null,
+                            tint = if (track.isFavorite) FavoriteHeart else InactiveHeart
+                        )
+                    },
+                    onClick = {
+                        rowMenuExpanded = false
+                        onToggleFavorite()
+                    }
+                )
+                if (isCurrent) {
+                    DropdownMenuItem(
+                        text = { Text("Open Now Playing", color = TextPrimary) },
+                        leadingIcon = {
+                            Icon(
+                                imageVector = Icons.Default.MusicNote,
+                                contentDescription = null,
+                                tint = CoralRed
+                            )
+                        },
+                        onClick = {
+                            rowMenuExpanded = false
+                            onOpenNowPlaying()
+                        }
+                    )
+                }
+            }
         }
     }
 }

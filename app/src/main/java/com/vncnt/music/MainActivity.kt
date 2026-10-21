@@ -93,6 +93,10 @@ class MainActivity : ComponentActivity() {
                 MusicPlaybackService.ACTION_REQUEST_PREV -> viewModel.previousTrack()
                 MusicPlaybackService.ACTION_REQUEST_TOGGLE_PAUSE,
                 MusicPlaybackService.ACTION_REQUEST_STOP -> viewModel.pauseFromSystem("service")
+                MusicPlaybackService.ACTION_REQUEST_SEEK -> {
+                    val positionMs = intent.getLongExtra(MusicPlaybackService.EXTRA_POSITION_MS, 0L)
+                    viewModel.seekToMs(positionMs)
+                }
             }
         }
     }
@@ -147,6 +151,7 @@ class MainActivity : ComponentActivity() {
             addAction(MusicPlaybackService.ACTION_REQUEST_PREV)
             addAction(MusicPlaybackService.ACTION_REQUEST_TOGGLE_PAUSE)
             addAction(MusicPlaybackService.ACTION_REQUEST_STOP)
+            addAction(MusicPlaybackService.ACTION_REQUEST_SEEK)
         }
         try {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -382,9 +387,21 @@ fun MainContent(viewModel: MusicViewModel) {
                 }
             }
         ) { innerPadding ->
+            // Custom-header screens (Home/Favorites) need the status-bar
+            // inset: without it the masthead title renders under the clock
+            // and looks cut off. Playlist self-insets via its TopAppBar and
+            // Now Playing stays fullscreen.
+            val topInset = if (currentScreen == AppScreen.HOME ||
+                currentScreen == AppScreen.FAVORITES
+            ) {
+                innerPadding.calculateTopPadding()
+            } else {
+                0.dp
+            }
             Box(
                 modifier = Modifier
                     .fillMaxSize()
+                    .padding(top = topInset)
                     .padding(bottom = if (currentScreen == AppScreen.NOW_PLAYING) 0.dp else innerPadding.calculateBottomPadding())
             ) {
                 when (currentScreen) {
@@ -401,7 +418,8 @@ fun MainContent(viewModel: MusicViewModel) {
                             onToggleFavorite = { viewModel.toggleFavorite(it) },
                             onOpenEqualizer = { viewModel.setShowEqualizer(true) },
                             onScanLocalAudio = requestScanAudio,
-                            onNavigateBack = { viewModel.selectTab(AppScreen.HOME) }
+                            onNavigateBack = { viewModel.selectTab(AppScreen.HOME) },
+                            onOpenNowPlaying = { viewModel.openNowPlaying() }
                         )
                     }
 

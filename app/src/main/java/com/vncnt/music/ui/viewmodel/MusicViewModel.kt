@@ -211,6 +211,8 @@ class MusicViewModel(application: Application) : AndroidViewModel(application) {
                         currentPositionProgress = progress
                     )
                 }
+                // Keep the lock-screen widget's progress bar current.
+                MusicPlaybackService.publishPosition(ms)
             }
 
             override fun onAmplitudes(amps: List<Float>) {
@@ -338,11 +340,23 @@ class MusicViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     private fun syncService(track: Track, isPlaying: Boolean) {
+        val state = _playbackState.value
+        val durationMs = track.durationSeconds * 1000L
         try {
             if (isPlaying) {
-                MusicPlaybackService.start(app, track.title, track.artist, true)
+                MusicPlaybackService.start(
+                    app, track.title, track.artist, true,
+                    positionMs = state.currentPositionMs,
+                    durationMs = durationMs,
+                    artName = track.imageResName
+                )
             } else {
-                MusicPlaybackService.update(app, track.title, track.artist, false)
+                MusicPlaybackService.update(
+                    app, track.title, track.artist, false,
+                    positionMs = state.currentPositionMs,
+                    durationMs = durationMs,
+                    artName = track.imageResName
+                )
             }
         } catch (e: Exception) {
             Log.w(TAG, "sync service failed", e)

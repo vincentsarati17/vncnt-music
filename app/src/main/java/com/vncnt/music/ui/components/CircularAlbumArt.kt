@@ -31,7 +31,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import com.vncnt.music.data.model.Track
+import com.vncnt.music.core.model.Track
 import com.vncnt.music.ui.theme.CoralRed
 import com.vncnt.music.ui.theme.DarkBackground
 import com.vncnt.music.ui.theme.DarkSurfaceVariant

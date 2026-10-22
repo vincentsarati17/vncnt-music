@@ -4,9 +4,9 @@ import android.app.Application
 import android.content.Context
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
-import com.vncnt.music.data.db.AppDatabase
-import com.vncnt.music.data.db.TrackEntity
-import com.vncnt.music.data.model.Track
+import com.vncnt.music.core.db.AppDatabase
+import com.vncnt.music.core.db.TrackEntity
+import com.vncnt.music.core.model.Track
 import com.vncnt.music.ui.viewmodel.MusicViewModel
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking

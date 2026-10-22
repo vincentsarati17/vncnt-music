@@ -521,7 +521,7 @@ fun MainContent(viewModel: MusicViewModel) {
 }
 
 @Composable
-fun rememberNextTrack(tracks: List<com.vncnt.music.data.model.Track>, current: com.vncnt.music.data.model.Track?): com.vncnt.music.data.model.Track? {
+fun rememberNextTrack(tracks: List<com.vncnt.music.core.model.Track>, current: com.vncnt.music.core.model.Track?): com.vncnt.music.core.model.Track? {
     // Up-next preview uses shared :core queue math (peekNext wraps at end).
     return com.vncnt.music.core.queue.QueueNavigator.peekNext(tracks, current?.id)
 }

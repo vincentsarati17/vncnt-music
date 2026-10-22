@@ -8,14 +8,14 @@ import com.vncnt.music.audio.AudioFocusHelper
 import com.vncnt.music.audio.HiFiAudioEngine
 import com.vncnt.music.core.audio.AudioEngine
 import com.vncnt.music.core.audio.AudioEngineListener
-import com.vncnt.music.data.db.AppDatabase
+import com.vncnt.music.core.db.AppDatabase
 // Companion extension from :core androidMain (see MusicRepository).
 import com.vncnt.music.core.db.getDatabase
-import com.vncnt.music.data.model.LyricsData
-import com.vncnt.music.data.model.PlaybackState
-import com.vncnt.music.data.model.Playlist
-import com.vncnt.music.data.model.SoundPreset
-import com.vncnt.music.data.model.Track
+import com.vncnt.music.core.model.LyricsData
+import com.vncnt.music.core.model.PlaybackState
+import com.vncnt.music.core.model.Playlist
+import com.vncnt.music.core.model.SoundPreset
+import com.vncnt.music.core.model.Track
 import com.vncnt.music.data.prefs.UserPreferencesRepository
 import com.vncnt.music.data.repository.LyricsRepository
 import com.vncnt.music.data.repository.MusicRepository

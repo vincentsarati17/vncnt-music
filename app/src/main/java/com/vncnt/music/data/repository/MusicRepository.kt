@@ -1,13 +1,13 @@
 package com.vncnt.music.data.repository
 
 import android.content.Context
-import com.vncnt.music.data.db.AppDatabase
+import com.vncnt.music.core.db.AppDatabase
 // Companion extension from :core androidMain (AppDatabase is a typealias;
 // extensions need an explicit import at each call site).
 import com.vncnt.music.core.db.getDatabase
-import com.vncnt.music.data.db.TrackEntity
-import com.vncnt.music.data.model.Playlist
-import com.vncnt.music.data.model.Track
+import com.vncnt.music.core.db.TrackEntity
+import com.vncnt.music.core.model.Playlist
+import com.vncnt.music.core.model.Track
 import com.vncnt.music.data.scanner.LocalAudioScanner
 import com.vncnt.music.data.scanner.ScanResult
 import kotlinx.coroutines.Dispatchers

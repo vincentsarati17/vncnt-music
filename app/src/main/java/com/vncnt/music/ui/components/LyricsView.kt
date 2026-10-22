@@ -60,10 +60,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.vncnt.music.data.model.LyricLine
-import com.vncnt.music.data.model.LyricsData
-import com.vncnt.music.data.model.LyricsSource
-import com.vncnt.music.data.model.Track
+import com.vncnt.music.core.model.LyricLine
+import com.vncnt.music.core.model.LyricsData
+import com.vncnt.music.core.model.LyricsSource
+import com.vncnt.music.core.model.Track
 import com.vncnt.music.ui.theme.CoralRed
 import com.vncnt.music.ui.theme.DarkCardBorder
 import com.vncnt.music.ui.theme.DarkSurface

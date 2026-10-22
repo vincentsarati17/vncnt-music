@@ -11,8 +11,8 @@ import android.os.Handler
 import android.os.Looper
 import android.os.PowerManager
 import android.util.Log
-import com.vncnt.music.data.model.SoundPreset
-import com.vncnt.music.data.model.Track
+import com.vncnt.music.core.model.SoundPreset
+import com.vncnt.music.core.model.Track
 import com.vncnt.music.core.audio.AudioEngine
 import com.vncnt.music.core.audio.AudioEngineListener
 import kotlinx.coroutines.CoroutineScope

@@ -18,7 +18,7 @@
 
 # Room — keep entities/DAOs, DB impl is generated.
 -keep class androidx.room.RoomDatabase { *; }
--keep class com.vncnt.music.data.db.** { *; }
+-keep class com.vncnt.music.core.db.** { *; }
 -dontwarn androidx.room.**
 -keepattributes *Annotation*
 

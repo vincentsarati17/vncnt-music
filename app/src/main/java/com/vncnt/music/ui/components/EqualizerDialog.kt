@@ -46,8 +46,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
-import com.vncnt.music.data.model.PlaybackState
-import com.vncnt.music.data.model.SoundPreset
+import com.vncnt.music.core.model.PlaybackState
+import com.vncnt.music.core.model.SoundPreset
 import com.vncnt.music.ui.theme.CoralRed
 import com.vncnt.music.ui.theme.DarkBackground
 import com.vncnt.music.ui.theme.DarkCardBorder

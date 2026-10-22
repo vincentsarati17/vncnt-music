@@ -41,7 +41,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
-import com.vncnt.music.data.model.Track
+import com.vncnt.music.core.model.Track
 import com.vncnt.music.ui.theme.CoralRed
 import com.vncnt.music.ui.theme.DarkCardBorder
 import com.vncnt.music.ui.theme.DarkSurface

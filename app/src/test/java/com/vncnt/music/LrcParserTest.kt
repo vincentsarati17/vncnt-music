@@ -1,7 +1,7 @@
 package com.vncnt.music
 
-import com.vncnt.music.data.lyrics.LrcParser
-import com.vncnt.music.data.model.LyricsSource
+import com.vncnt.music.core.lyrics.LrcParser
+import com.vncnt.music.core.model.LyricsSource
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull

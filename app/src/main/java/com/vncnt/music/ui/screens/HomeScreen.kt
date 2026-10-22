@@ -56,9 +56,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.vncnt.music.data.model.PlaybackState
-import com.vncnt.music.data.model.Playlist
-import com.vncnt.music.data.model.Track
+import com.vncnt.music.core.model.PlaybackState
+import com.vncnt.music.core.model.Playlist
+import com.vncnt.music.core.model.Track
 import com.vncnt.music.ui.components.rememberDrawableResId
 import com.vncnt.music.ui.theme.AudiophileAmber
 import com.vncnt.music.ui.theme.CoralRed

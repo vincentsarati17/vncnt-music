@@ -119,7 +119,10 @@ jobs:
       - name: Build iOS shell (simulator)
         run: |
           set -o pipefail
-          cd iosApp && xcodebuild -scheme VncntMusic -configuration Debug -destination 'platform=iOS Simulator,name=iPhone 17' CODE_SIGNING_ALLOWED=NO build 2>&1 | tee /tmp/step-xcode.log || {
+          # generic destination: builds without pinning a concrete simulator
+          # device name (macos-latest runner device lineup changes with image
+          # updates — a named device broke CI on 2026-10-22).
+          cd iosApp && xcodebuild -scheme VncntMusic -configuration Debug -destination 'generic/platform=iOS Simulator' CODE_SIGNING_ALLOWED=NO build 2>&1 | tee /tmp/step-xcode.log || {
             errs=$(grep -E 'error:|warning: .*deprecat' /tmp/step-xcode.log | head -60 | tr '\n' '~')
             [ -z "$errs" ] && errs=$(tail -40 /tmp/step-xcode.log | tr '\n' '~')
             echo "::error title=iOS shell build failed::$errs"

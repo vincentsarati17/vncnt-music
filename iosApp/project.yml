@@ -23,6 +23,10 @@ targets:
         embed: true
     settings:
       base:
+        # The vendored framework is iosSimulatorArm64-only; an x86_64 slice
+        # can never link (CI hit this when the destination stopped pinning a
+        # concrete arm64 device). iOS 17+ devices are arm64 anyway.
+        ARCHS: arm64
         PRODUCT_BUNDLE_IDENTIFIER: com.vncnt.music
         CODE_SIGNING_ALLOWED: "NO"
         MARKETING_VERSION: "1.0.0"

@@ -16,14 +16,11 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -51,12 +48,10 @@ import com.vncnt.music.ui.theme.AmbientGlassOrbsBackground
 import com.vncnt.music.ui.theme.CoralRed
 import com.vncnt.music.ui.theme.CoralRedGlow
 import com.vncnt.music.ui.theme.DarkSurfaceVariant
-import com.vncnt.music.ui.theme.HiResGold
 import com.vncnt.music.ui.theme.TextMuted
 import com.vncnt.music.ui.theme.TextPrimary
 import com.vncnt.music.ui.theme.TextSecondary
 import com.vncnt.music.ui.theme.glassBorderBrush
-import com.vncnt.music.ui.theme.glassmorphic
 import kotlinx.coroutines.delay
 
 @Composable
@@ -185,45 +180,6 @@ fun SplashScreen(
                         color = TextPrimary
                     )
                 )
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                // Tagline / Subtitle badge
-                Box(
-                    modifier = Modifier
-                        .glassmorphic(
-                            shape = RoundedCornerShape(20.dp),
-                            borderBrush = glassBorderBrush(highlightAlpha = 0.3f),
-                            backgroundBrush = Brush.horizontalGradient(
-                                colors = listOf(
-                                    DarkSurfaceVariant.copy(alpha = 0.6f),
-                                    DarkSurfaceVariant.copy(alpha = 0.3f)
-                                )
-                            )
-                        )
-                        .padding(horizontal = 14.dp, vertical = 6.dp)
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.Center
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(6.dp)
-                                .clip(CircleShape)
-                                .background(HiResGold)
-                        )
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text(
-                            text = "HIGH-FIDELITY OFFLINE AUDIO",
-                            style = MaterialTheme.typography.labelSmall.copy(
-                                fontWeight = FontWeight.SemiBold,
-                                letterSpacing = 1.5.sp,
-                                color = HiResGold
-                            )
-                        )
-                    }
-                }
 
                 Spacer(modifier = Modifier.height(36.dp))
 
